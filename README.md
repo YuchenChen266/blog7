@@ -9,7 +9,6 @@ The analysis explores the relationship between median wage and unemployment rate
 ## Replication Instructions
 1. Open `blog7.Rmd` in RStudio.
 2. Install required packages:
-```r
 install.packages(c("plotly","dplyr"))
 3. Knit the document to generate the rendered blog7.html page and interactive figure.
 
