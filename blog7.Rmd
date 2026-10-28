@@ -1,0 +1,96 @@
+---
+title: "Wages and Unemployment Across U.S. States: An Interactive Plotly Visualization"
+author: "Yuchen Chen"
+date: "2026-10-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(plotly)
+library(dplyr)
+```
+## Question and Motivation
+The relation between wage level and unemployment rate is a common problem in the labor economics. The basic supply and demand logic states that a higher local unemployment rate would weaken the labor's power in deciding the price, which brings the pressure of decreasing wages. But this relationship is not necessarily the same pattern in different sectors. The wage rigidity, union rules and goverment pay would change the sesitivity of income to local labor market condition.
+
+Standard static graphs can only show one group of data at one time. If we want to compare the pattern of different jobs, we would need several graphs, and let the readers able to compare by themselves. This blog uses an interactive visualizationto explore this problem, the readers can explore the pattern of each industry on their own. The readers are able to switch between service, manufaturing and public sector subgroups, while hovering over points to view each individual state data.
+
+## Data and Methods
+This analysis uses the simulated state-level labor market data. The dataset contains the name of each states in the U.S., the three broad groups of industry, the median of annual wages, and the local unemployment rates. I used Plotly in R to draw the interactive scatter plot. The plot contains two interactive functions. First, the hover tooltips display precise values for each state observation. Second, a dropdown menu changes which sector shows on the graph. All data and visualize results are created programmatically inside the script, no manual copying and paste of the result.
+```{r}
+state_list <- c("Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia")
+sector_list <- c("Manufacturing","Service","Public Sector")
+
+df <- expand.grid(state = state_list, sector = sector_list) %>%
+  mutate(
+    base_unemp = 4.2 + (as.integer(factor(state)) * 0.3),
+    noise_service = rnorm(n(), 0, 2900),
+    noise_manu = rnorm(n(), 0, 1300),
+    noise_public = rnorm(n(), 0, 120),
+    median_wage = case_when(
+      sector == "Service" ~ 68000 - base_unemp * 3800 + noise_service,
+      sector == "Manufacturing" ~ 58000 - base_unemp * 1700 + noise_manu,
+      sector == "Public Sector" ~ 49000 - base_unemp * 60 + noise_public
+    )
+  )
+
+df_service <- filter(df, sector == "Service")
+df_manu <- filter(df, sector == "Manufacturing")
+df_public <- filter(df, sector == "Public Sector")
+
+fig <- plot_ly() %>%
+  add_trace(data = df_service, x = ~base_unemp, y = ~median_wage, color = ~state,
+            type = "scatter", mode = "markers",
+            hoverinfo = "text",
+            text = ~paste0("State: ", state, "<br>Sector: ", sector,
+                           "<br>Median Wage: $", median_wage,
+                           "<br>Unemployment: ", round(base_unemp,2), "%"),
+            visible = TRUE) %>%
+  add_trace(data = df_manu, x = ~base_unemp, y = ~median_wage, color = ~state,
+            type = "scatter", mode = "markers",
+            hoverinfo = "text",
+            text = ~paste0("State: ", state, "<br>Sector: ", sector,
+                           "<br>Median Wage: $", median_wage,
+                           "<br>Unemployment: ", round(base_unemp,2), "%"),
+            visible = FALSE) %>%
+  add_trace(data = df_public, x = ~base_unemp, y = ~median_wage, color = ~state,
+            type = "scatter", mode = "markers",
+            hoverinfo = "text",
+            text = ~paste0("State: ", state, "<br>Sector: ", sector,
+                           "<br>Median Wage: $", median_wage,
+                           "<br>Unemployment: ", round(base_unemp,2), "%"),
+            visible = FALSE) %>%
+  layout(
+    title = "Median Wage vs Unemployment Rate by State and Industry",
+    xaxis = list(title = "Unemployment Rate (%)"),
+    yaxis = list(title = "Median Annual Wage (USD)"),
+    updatemenus = list(
+      list(
+        buttons = list(
+          list(method = "restyle",
+               label = "Service",
+               args = list("visible", list(TRUE, FALSE, FALSE))),
+          list(method = "restyle",
+               label = "Manufacturing",
+               args = list("visible", list(FALSE, TRUE, FALSE))),
+          list(method = "restyle",
+               label = "Public Sector",
+               args = list("visible", list(FALSE, FALSE, TRUE)))
+        ),
+        showactive = TRUE
+      )
+    )
+  )
+fig
+```
+
+## Results and Interpretation
+The service sector can see an overall negative pattern, a higher unemployment rate state tends to have a lower median wages, the random nosie brings some variations.
+
+Manufacturing also exist a moderately, negative correlation between unemployment rate, the decreasing trend is weaker tha  what we see for services.
+
+For public sector, there is no obvious downward slope. The points scatter, does not exist a clear trend, which is consistent with wage rigidity.
+
+## Discussion and Takeaway
+
+The simulation indicates the wage responsiveness to local labor market conditions different in different industries. Service sector wggaes adjust most readily to change in unemployment rate, manufacturing wages exist morderate adjustment, public sector pay wage is low sensitive to short run labor market fluctuation. Institutional rules such as fixed pay schedule, collective agreements can make public sector income less likely to be influenced by local unemployment shocks.
